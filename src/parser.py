@@ -1,3 +1,10 @@
+# SCOPE NOTE:
+# This synthesizer supports only the bitwise operator family used in
+# structural combinational RTL: & (AND), | (OR), ^ (XOR), ~ (NOT).
+# Logical operators (&&, ||, !) are intentionally NOT supported, since
+# they require boolean reduction semantics rather than direct, bit-per-bit
+# gate mapping, and are not used in synthesizable structural logic.
+
 from lark import Lark
 
 # A minimal grammar that understands JUST enough Verilog
@@ -43,7 +50,14 @@ parser = Lark(grammar)
 with open("examples/test1.v") as f:
 
     source = f.read()
+from lark.exceptions import UnexpectedCharacters, UnexpectedToken
 
-tree = parser.parse(source)
+try:
+    tree = parser.parse(source)
+except (UnexpectedCharacters, UnexpectedToken) as e:
+    print("ERROR: Could not parse this Verilog file.")
+    print("This synthesizer supports only bitwise operators (&, |, ^, ~).")
+    print(f"Parser details: {e}")
+    exit(1)
 
 print(tree.pretty())
