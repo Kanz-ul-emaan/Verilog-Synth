@@ -17,8 +17,11 @@ grammar = r"""
     stmt: assign_stmt
     assign_stmt: "assign" NAME "=" or_expr ";"
 
-    ?or_expr: or_expr "|" and_expr   -> or_op
-            | and_expr
+    ?or_expr: or_expr "|" xor_expr    -> or_op
+            | xor_expr
+
+    ?xor_expr: xor_expr "^" and_expr  -> xor_op
+             | and_expr
 
     ?and_expr: and_expr "&" unary_expr -> and_op
              | unary_expr

@@ -1,3 +1,3 @@
-module top(input a, input b, input c, output y);
-  assign y = (a & b) | ~c;
+module top(input a, input b, input c, input d, output y);
+  assign y = (a & b) ^ (c | ~d);
 endmodule
