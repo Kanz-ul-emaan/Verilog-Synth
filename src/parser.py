@@ -15,11 +15,19 @@ grammar = r"""
              | "output" -> output_dir
 
     stmt: assign_stmt
-    assign_stmt: "assign" NAME "=" expr ";"
+    assign_stmt: "assign" NAME "=" or_expr ";"
 
-    ?expr: expr "&" term   -> and_expr
-         | term
-    ?term: NAME            -> signal_ref
+    ?or_expr: or_expr "|" and_expr   -> or_op
+            | and_expr
+
+    ?and_expr: and_expr "&" unary_expr -> and_op
+             | unary_expr
+
+    ?unary_expr: "~" unary_expr  -> not_op
+               | atom
+
+    ?atom: NAME        -> signal_ref
+         | "(" or_expr ")"
 
     NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
 
