@@ -47,17 +47,18 @@ grammar = r"""
 
 parser = Lark(grammar)
 
-with open("examples/test1.v") as f:
+if __name__ == "__main__":
+    from lark.exceptions import UnexpectedCharacters, UnexpectedToken
 
-    source = f.read()
-from lark.exceptions import UnexpectedCharacters, UnexpectedToken
+    with open("examples/test1.v") as f:
+        source = f.read()
 
-try:
-    tree = parser.parse(source)
-except (UnexpectedCharacters, UnexpectedToken) as e:
-    print("ERROR: Could not parse this Verilog file.")
-    print("This synthesizer supports only bitwise operators (&, |, ^, ~).")
-    print(f"Parser details: {e}")
-    exit(1)
+    try:
+        tree = parser.parse(source)
+    except (UnexpectedCharacters, UnexpectedToken) as e:
+        print("ERROR: Could not parse this Verilog file.")
+        print("This synthesizer supports only bitwise operators (&, |, ^, ~).")
+        print(f"Parser details: {e}")
+        exit(1)
 
-print(tree.pretty())
+    print(tree.pretty())
