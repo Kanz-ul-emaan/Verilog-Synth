@@ -1,0 +1,97 @@
+== inv_1
+        area : 3.7536000000;
+        pin ("A") {
+        pin ("Y") {
+            function : "(!A)";
+== buf_1
+        area : 3.7536000000;
+        pin ("A") {
+        pin ("X") {
+            function : "(A)";
+== nand2_1
+        area : 3.7536000000;
+        pin ("A") {
+        pin ("B") {
+        pin ("Y") {
+            function : "(!A) | (!B)";
+== nor2_1
+        area : 3.7536000000;
+        pin ("A") {
+        pin ("B") {
+        pin ("Y") {
+            function : "(!A&!B)";
+== and2_1
+        area : 6.2560000000;
+        pin ("A") {
+        pin ("B") {
+        pin ("X") {
+            function : "(A&B)";
+== or2_1
+        area : 6.2560000000;
+        pin ("A") {
+        pin ("B") {
+        pin ("X") {
+            function : "(A) | (B)";
+== xor2_1
+        area :  8.758400000;
+        pin ("A") {
+        pin ("B") {
+        pin ("X") {
+            function : "(A&!B) | (!A&B)";
+== xnor2_1
+        area :  8.758400000;
+        pin ("A") {
+        pin ("B") {
+        pin ("Y") {
+            function : "(!A&!B) | (A&B)";
+== nand3_1
+        area : 5.0048000000;
+        pin ("A") {
+        pin ("B") {
+        pin ("C") {
+        pin ("Y") {
+            function : "(!A) | (!B) | (!C)";
+== a21o_1
+        area : 7.5072000000;
+        pin ("A1") {
+        pin ("A2") {
+        pin ("B1") {
+        pin ("X") {
+            function : "(A1&A2) | (B1)";
+== a21oi_1
+        area : 5.0048000000;
+        pin ("A1") {
+        pin ("A2") {
+        pin ("B1") {
+        pin ("Y") {
+            function : "(!A1&!B1) | (!A2&!B1)";
+== a22o_1
+        area :  8.758400000;
+        pin ("A1") {
+        pin ("A2") {
+        pin ("B1") {
+        pin ("B2") {
+        pin ("X") {
+            function : "(B1&B2) | (A1&A2)";
+== a22oi_1
+        area : 7.5072000000;
+        pin ("A1") {
+        pin ("A2") {
+        pin ("B1") {
+        pin ("B2") {
+        pin ("Y") {
+            function : "(!A1&!B1) | (!A1&!B2) | (!A2&!B1) | (!A2&!B2)";
+== o21a_1
+        area : 7.5072000000;
+        pin ("A1") {
+        pin ("A2") {
+        pin ("B1") {
+        pin ("X") {
+            function : "(A1&B1) | (A2&B1)";
+== o21ai_1
+        area : 5.0048000000;
+        pin ("A1") {
+        pin ("A2") {
+        pin ("B1") {
+        pin ("Y") {
+            function : "(!A1&!A2) | (!B1)";
