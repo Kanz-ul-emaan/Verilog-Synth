@@ -21,7 +21,8 @@ grammar = r"""
     direction: "input" -> input_dir
              | "output" -> output_dir
 
-    stmt: assign_stmt
+    stmt: assign_stmt | wire_decl
+    wire_decl: "wire" NAME ("," NAME)* ";"
     assign_stmt: "assign" NAME "=" or_expr ";"
 
     ?or_expr: or_expr "|" xor_expr    -> or_op
