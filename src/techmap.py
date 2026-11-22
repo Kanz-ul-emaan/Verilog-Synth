@@ -8,6 +8,8 @@ SKY130_CELL_MAP = {
     "XOR":  {"cell": "sky130_fd_sc_hd__xor2_1",  "area": 8.7584, "pins": ["A", "B"], "out_pin": "X"},
     "NOT":  {"cell": "sky130_fd_sc_hd__inv_1",   "area": 3.7536, "pins": ["A"],      "out_pin": "Y"},
     "BUF":  {"cell": "sky130_fd_sc_hd__buf_1",   "area": 3.7536, "pins": ["A"],      "out_pin": "X"},
+    "TIE0": {"cell": "sky130_fd_sc_hd__conb_1", "area": 3.7536, "pins": [], "out_pin": "LO"},
+    "TIE1": {"cell": "sky130_fd_sc_hd__conb_1", "area": 3.7536, "pins": [], "out_pin": "HI"},
 }
 
 @dataclass

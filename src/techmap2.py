@@ -120,8 +120,16 @@ def tree_map(netlist):
 
     inv = lambda x: Node("INV", x)
     nand = lambda x, y: Node("NAND", x, y)
+    ties = []
+    tie_names = set()
 
     for c in netlist.cells:
+        if c.type in ("TIE0", "TIE1"):
+            pin = "HI" if c.type == "TIE1" else "LO"
+            ties.append(MappedCell(lib_cell=P + "conb_1", connections={pin: c.output}, area=3.7536))
+            tie_names.add(c.output)
+            sig[c.output] = Node("IN", name=c.output)
+            continue
         try:
             ins = [sig[w] for w in c.inputs]
         except KeyError as e:
@@ -145,7 +153,7 @@ def tree_map(netlist):
 
     outs = []
     for p, s in netlist.signals.items():
-        if s.kind == "output":
+        if s.kind == "output" and p not in tie_names:
             if p not in sig or sig[p].kind == "IN":
                 raise TechMapError(f"Output '{p}' is not driven by any gate")
             outs.append((p, sig[p]))
@@ -217,7 +225,7 @@ def tree_map(netlist):
         memo[key] = (best_cost, best_choice)
         return memo[key]
 
-    cells = []
+    cells = list(ties)
 
     def cover(node, out_wire):
         entry, bind = best(node)[1]

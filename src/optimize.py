@@ -1,74 +1,152 @@
 from ir import Cell, Netlist
 
 COMMUTATIVE = {"AND", "OR", "XOR"}
+ZERO = "1'b0"
+ONE = "1'b1"
+CONSTS = (ZERO, ONE)
 
 
 def optimize(netlist):
     """
-    Takes a Netlist and returns a new, optimized Netlist with:
-      - Common subexpression elimination (duplicate cells merged)
-      - Idempotence simplification: AND(x,x)=x, OR(x,x)=x
-      - Double negation elimination: NOT(NOT(x))=x
+    Structural + Boolean-identity optimization:
+      - common-subexpression elimination
+      - idempotence, double negation
+      - complement rules (a&~a=0, a|~a=1, a^~a=1, a^a=0)
+      - absorption (x|(x&y)=x, x&(x|y)=x)
+      - constant propagation
+      - dead-gate removal
     """
-    renames = {}     # old wire name -> canonical wire name
-    seen = {}         # (type, inputs-key) -> canonical wire name
-    producer = {}      # wire name -> the Cell (in new_cells) that drives it
+    renames = {}      # old wire -> replacement wire (or constant)
+    seen = {}         # (type, inputs) -> wire already computing it
+    producer = {}     # wire -> Cell that drives it
     new_cells = []
 
-    def resolve(wire):
-        # Follow the rename chain until we reach a wire that's not renamed
-        while wire in renames:
-            wire = renames[wire]
-        return wire
+    def resolve(w):
+        while w in renames:
+            w = renames[w]
+        return w
 
-    def keep_as_alias(original_output, canonical_wire):
-        """
-        Decide how to eliminate a redundant cell's output:
-        - if the name is a real primary port (must be preserved exactly),
-          emit a BUF cell so that name still exists in the netlist
-        - otherwise, just record a rename so later cells use the
-          canonical wire directly
-        """
-        if original_output in netlist.signals:
+    def emit(ctype, inputs, output):
+        c = Cell(type=ctype, inputs=inputs, output=output)
+        new_cells.append(c)
+        producer[output] = c
 
-            buf = Cell(type="BUF", inputs=[canonical_wire], output=original_output)
-            new_cells.append(buf)
-            producer[original_output] = buf
+
+    def alias(out, target):
+        """Make 'out' equal to 'target'. Port names must keep existing."""
+        if out in netlist.signals:
+            if target in CONSTS:
+                emit("TIE1" if target == ONE else "TIE0", [], out)
+            else:
+                emit("BUF", [target], out)
         else:
-            renames[original_output] = canonical_wire
+            renames[out] = target
+
+    def is_not_of(a, b):
+        p = producer.get(a)
+        return p is not None and p.type == "NOT" and p.inputs[0] == b
+
+    def complementary(a, b):
+        return is_not_of(a, b) or is_not_of(b, a)
+
+    def contains(w, ctype, x):
+        p = producer.get(w)
+        return p is not None and p.type == ctype and x in p.inputs
+
+    def simplify(t, ins):
+        """Return a wire/constant name, ('NOT',[w]) to rewrite, or None."""
+        if t == "BUF":
+            return ins[0]
+        if t == "NOT":
+            x = ins[0]
+            if x == ZERO:
+                return ONE
+            if x == ONE:
+                return ZERO
+
+            p = producer.get(x)
+            if p is not None and p.type == "NOT":
+                return p.inputs[0]
+            return None
+
+        x, y = ins
+        if t == "AND":
+            if x == ZERO or y == ZERO:
+                return ZERO
+            if x == ONE:
+                return y
+            if y == ONE:
+                return x
+            if x == y:
+                return x
+            if complementary(x, y):
+                return ZERO
+            if contains(y, "OR", x):
+                return x
+            if contains(x, "OR", y):
+                return y
+        elif t == "OR":
+            if x == ONE or y == ONE:
+                return ONE
+            if x == ZERO:
+                return y
+            if y == ZERO:
+                return x
+            if x == y:
+                return x
+            if complementary(x, y):
+                return ONE
+
+            if contains(y, "AND", x):
+                return x
+            if contains(x, "AND", y):
+                return y
+        elif t == "XOR":
+            if x == ZERO:
+                return y
+            if y == ZERO:
+                return x
+            if x == ONE:
+                return ("NOT", [y])
+            if y == ONE:
+                return ("NOT", [x])
+            if x == y:
+                return ZERO
+            if complementary(x, y):
+                return ONE
+        return None
 
     for cell in netlist.cells:
-        inputs = [resolve(w) for w in cell.inputs]
+        t = cell.type
+        ins = [resolve(w) for w in cell.inputs]
 
-        # --- Double negation: NOT(NOT(x)) = x ---
-        if cell.type == "NOT":
-            src = inputs[0]
-            if src in producer and producer[src].type == "NOT":
-                original_x = producer[src].inputs[0]
-                keep_as_alias(cell.output, original_x)
+        while True:
+            r = simplify(t, ins)
+            if isinstance(r, tuple):
+                t, ins = r
                 continue
+            break
 
-        # --- Idempotence: AND(x,x)=x , OR(x,x)=x ---
-        if cell.type in ("AND", "OR") and len(inputs) == 2 and inputs[0] == inputs[1]:
-            keep_as_alias(cell.output, inputs[0])
+        if r is not None:
+            alias(cell.output, r)
+
             continue
 
-        # --- Common subexpression elimination ---
-        if cell.type in COMMUTATIVE:
-            key = (cell.type, tuple(sorted(inputs)))
-        else:
-            key = (cell.type, tuple(inputs))
-
+        key = (t, tuple(sorted(ins))) if t in COMMUTATIVE else (t, tuple(ins))
         if key in seen:
-            canonical = seen[key]
-            keep_as_alias(cell.output, canonical)
+            alias(cell.output, seen[key])
             continue
 
-
-        # Genuinely new cell: keep it
-        new_cell = Cell(type=cell.type, inputs=inputs, output=cell.output)
-        new_cells.append(new_cell)
+        emit(t, ins, cell.output)
         seen[key] = cell.output
-        producer[cell.output] = new_cell
 
-    return Netlist(name=netlist.name, signals=netlist.signals, cells=new_cells)
+    # ---- dead-gate removal: keep only logic that feeds an output ----
+    live = {p for p, s in netlist.signals.items() if s.kind == "output"}
+    kept = []
+    for c in reversed(new_cells):
+        if c.output in live:
+            kept.append(c)
+            live.update(c.inputs)
+    kept.reverse()
+
+    return Netlist(name=netlist.name, signals=netlist.signals, cells=kept)
