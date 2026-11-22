@@ -41,7 +41,8 @@ tree_cells, tree_area = tree_map(optimized)
 mapped, area = (tree_cells, tree_area) if mode == "tree" else (direct_cells, direct_area)
 write_netlist(optimized, mapped, out_path)
 
-print(f"Cells after logic optimization: {len(optimized.cells)}")
+print(f"Cells before logic optimization: {len(netlist.cells)}")
+print(f"Cells after logic optimization:  {len(optimized.cells)}")
 print(f"Direct mapping : {len(direct_cells):3d} cells, {direct_area:.4f} um^2")
 print(f"Tree covering  : {len(tree_cells):3d} cells, {tree_area:.4f} um^2")
 if direct_area > 0:
